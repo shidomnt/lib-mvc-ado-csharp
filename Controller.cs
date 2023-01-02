@@ -140,6 +140,19 @@ namespace DBLib
             Db.FromSqlCommand(command, callback);
         }
 
+        public IEnumerable<EntityT> GetAll ()
+        {
+            var dataTable = this.GetDataTable();
+
+            var items = dataTable.Rows.OfType<DataRow>()
+                .Select(dataRow => CreateInstanceWithDtRow(dataRow));
+
+            foreach (var item in items)
+            {
+                yield return item;
+            }
+        }
+
         public DataTable GetDataTable ()
         {
             DataTable dataTable = new DataTable();
@@ -148,6 +161,23 @@ namespace DBLib
             var adapter = new SqlDataAdapter(cmd);
             adapter.Fill(dataTable);
             return dataTable;
+        }
+
+        private EntityT CreateInstanceWithDtRow (DataRow dataRow)
+        {
+            object instance = Activator.CreateInstance(typeParameterType);
+
+            var properties = typeParameterType.GetProperties();
+
+            foreach (var property in properties)
+            {
+
+                var value = dataRow[property.Name];
+
+                property.SetValue(instance, value, null);
+            }
+
+            return (EntityT)instance;
         }
 
         private void FillParameters (string sql, EntityT entity, out SqlCommand command)
